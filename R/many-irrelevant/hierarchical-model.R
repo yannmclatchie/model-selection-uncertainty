@@ -1,5 +1,6 @@
 library(ggplot2)
 library(ggdist)
+library(patchwork)
 library(purrr)
 library(dplyr)
 library(stringr)
@@ -8,6 +9,9 @@ library(posterior)
 # load model elppd
 ( model_df <- readRDS("./data/model_df.rds") )
 ( p <- ncol(model_df) - 1 )
+
+# set plot params
+my_alpha <- 0.05
 
 # compute pointwise elpd difference for the models
 ( diff_model_df <- model_df - base_fit_elppd )
@@ -24,14 +28,13 @@ library(posterior)
 tail(diff_df)
 
 # plot Gaussian approximation
-diff_df %>%
+( gg_diff_dist_analytic <- diff_df %>%
   mutate(
     dist = "norm",
     args = map2(diff, diff.se, list)
   ) %>%
   ggplot(
     aes(
-      y = dist, 
       xdist = dist,
       args = args, 
       colour = model, 
@@ -45,15 +48,16 @@ diff_df %>%
   ) +
   scale_alpha_manual(
     breaks = sprintf("x%1$d", 1:(p + 1)), 
-    values = c(rep(0.05, times = p), 1)
+    values = c(rep(my_alpha, times = p), 1)
   ) +
   theme_classic() +
   ylab(NULL) +
-  xlab("Model ELPD difference\n(Gaussian approximation)") +
+  xlab(NULL) +
+  ggtitle("LOO-CV ELPD difference") +
   theme(axis.line.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = "none")
+        legend.position = "none") )
 
 # compile hierarchical model
 hier_model <- cmdstan_model("./stan/eight_schools_rhs.stan")
@@ -64,10 +68,10 @@ data_list <- list(
   y = diff_df$diff,
   sigma = diff_df$diff.se,
   hs_df = 3,
-  hs_df_global = 3,
-  hs_df_slab = 3,
-  hs_scale_global = 10,
-  hs_scale_slab = 10
+  hs_df_global = 1,
+  hs_df_slab = 4,
+  hs_scale_global = 1,
+  hs_scale_slab = 2
 )
 
 # fit the hierarchical model
@@ -102,14 +106,13 @@ hier_fit <- hier_model$sample(
     mutate(model = paste0("x", as.character(model))) )
 
 # plot Gaussian approximation to posterior
-hier_diff_df %>% ggplot(
-  aes(
-    y = dist, 
-    xdist = dist_normal(mean, sd),
-    colour = model, 
-    alpha = model
-  )
-) +
+( gg_diff_dist_hier <- hier_diff_df %>% ggplot(
+    aes(
+      xdist = dist_normal(mean, sd),
+      colour = model, 
+      alpha = model
+    )
+  ) +
   stat_slab(fill = NA) +
   scale_colour_manual(
     breaks = sprintf("x%1$d", 1:(p + 1)), 
@@ -117,12 +120,18 @@ hier_diff_df %>% ggplot(
   ) +
   scale_alpha_manual(
     breaks = sprintf("x%1$d", 1:(p + 1)), 
-    values = c(rep(0.05, times = p), 1)
+    values = c(rep(my_alpha, times = p), 1)
   ) +
+  scale_fill_manual(values = c("transparent", "skyblue")) +
   theme_classic() +
   ylab(NULL) +
-  xlab("Eight schools theta\n(Gaussian approximation)") +
+  xlab(NULL) +
+  ggtitle("Eight schools $theta$") +
   theme(axis.line.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = "none")
+        legend.position = "none") )
+
+# combine plots in patchwork
+( gg_elpd_dists <- gg_diff_dist_analytic | gg_diff_dist_hier )
+
