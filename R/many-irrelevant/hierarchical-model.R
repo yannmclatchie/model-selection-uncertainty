@@ -56,13 +56,18 @@ diff_df %>%
         legend.position = "none")
 
 # compile hierarchical model
-hier_model <- cmdstan_model("./stan/eight_schools.stan")
+hier_model <- cmdstan_model("./stan/eight_schools_rhs.stan")
 
 # extract data from models
 data_list <- list(
   J = nrow(diff_df),
   y = diff_df$diff,
-  sigma = diff_df$diff.se
+  sigma = diff_df$diff.se,
+  hs_df = 3,
+  hs_df_global = 3,
+  hs_df_slab = 3,
+  hs_scale_global = 10,
+  hs_scale_slab = 10
 )
 
 # fit the hierarchical model
@@ -73,50 +78,51 @@ hier_fit <- hier_model$sample(
   parallel_chains = 4
 )
 
-# plot Gaussian approximation to posterior
-as_draws_df(hier_fit$draws()) %>%
-  select(starts_with("theta")) %>%
-  summarise(
-    across(
-      everything(), 
-      list(
-        mean = ~mean(.x, na.rm = TRUE),
-        sd = ~sd(.x, na.rm = TRUE)
+# compute posterior sample statistics
+( hier_diff_df <- as_draws_df(hier_fit$draws()) %>%
+    select(starts_with("theta")) %>%
+    summarise(
+      across(
+        everything(), 
+        list(
+          mean = ~mean(.x, na.rm = TRUE),
+          sd = ~sd(.x, na.rm = TRUE)
+        )
       )
-    )
-  ) %>%
-  reshape2::melt() %>%
-  mutate(
-    model = str_split(variable, "_", simplify = T)[, 1],
-    stat = str_split(variable, "_", simplify = T)[, 2]
-  ) %>% 
-  select(!variable) %>%
-  reshape2::dcast(model ~ stat, value = 'value') %>%
-  mutate(model = as.numeric(gsub("\\D", "", model)), dist = "norm") %>%
-  arrange(model) %>%
-  mutate(model = paste0("x", as.character(model))) %>%
-  ggplot(
-      aes(
-        y = dist, 
-        xdist = dist_normal(mean, sd),
-        colour = model, 
-        alpha = model
-      )
-    ) +
-    stat_slab(fill = NA) +
-    scale_colour_manual(
-      breaks = sprintf("x%1$d", 1:(p + 1)), 
-      values = c(rep("black", times = p), c("red"))
-    ) +
-    scale_alpha_manual(
-      breaks = sprintf("x%1$d", 1:(p + 1)), 
-      values = c(rep(0.05, times = p), 1)
-    ) +
-    theme_classic() +
-    ylab(NULL) +
-    xlab("Eight schools theta\n(Gaussian approximation)") +
-    theme(axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position = "none")
+    ) %>%
+    reshape2::melt() %>%
+    mutate(
+      model = str_split(variable, "_", simplify = T)[, 1],
+      stat = str_split(variable, "_", simplify = T)[, 2]
+    ) %>% 
+    select(!variable) %>%
+    reshape2::dcast(model ~ stat, value = 'value') %>%
+    mutate(model = as.numeric(gsub("\\D", "", model)), dist = "norm") %>%
+    arrange(model) %>%
+    mutate(model = paste0("x", as.character(model))) )
 
+# plot Gaussian approximation to posterior
+hier_diff_df %>% ggplot(
+  aes(
+    y = dist, 
+    xdist = dist_normal(mean, sd),
+    colour = model, 
+    alpha = model
+  )
+) +
+  stat_slab(fill = NA) +
+  scale_colour_manual(
+    breaks = sprintf("x%1$d", 1:(p + 1)), 
+    values = c(rep("black", times = p), c("red"))
+  ) +
+  scale_alpha_manual(
+    breaks = sprintf("x%1$d", 1:(p + 1)), 
+    values = c(rep(0.05, times = p), 1)
+  ) +
+  theme_classic() +
+  ylab(NULL) +
+  xlab("Eight schools theta\n(Gaussian approximation)") +
+  theme(axis.line.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")

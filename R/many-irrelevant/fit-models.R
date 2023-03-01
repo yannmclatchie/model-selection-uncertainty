@@ -52,5 +52,5 @@ fit_model <- function(x) {
 }
 xs <- 1:(p + 1)
 names(xs) <- paste0("x", xs)
-( model_df <- map_dfr(xs, fit_model) )
-saveRDS(model_df, "./data/model_df.rds")
+#( model_df <- map_dfr(xs, fit_model) )
+#saveRDS(model_df, "./data/model_df.rds")
