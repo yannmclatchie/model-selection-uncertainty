@@ -10,7 +10,7 @@ for K in "${Ks[@]}"
 do
 	for beta_delta in "${betas[@]}"
 	do
-	  dataset="data/datasets/many_models_K{$K}_beta{$beta_delta}_datasets.RDS"
-		sbatch triton/experiment1.sh $dataset $exec
+	  dataset="/scratch/cs/bayes_ave/yann/model-selection-uncertainty/data/datasets/many_models_K${K}_beta${beta_delta}_datasets.RDS"
+		sbatch triton/many_models_run.sh $dataset $exec
 	done
 done

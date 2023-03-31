@@ -2,8 +2,8 @@ library(simstudy)
 library(bayesflow)
 
 args <- commandArgs(trailingOnly = TRUE)
-n <- args[[1]]
-eps <- args[[2]]
+n <- as.numeric(args[[1]])
+eps <- as.numeric(args[[2]])
 
 simulate_data <- function(rep_id, n, K, eps, beta_delta) {
   # define the DGP 
@@ -29,8 +29,8 @@ simulate_data <- function(rep_id, n, K, eps, beta_delta) {
 
 for (K in c(2, 10, 100)) {
   
-  for (beta_delta in seq(0, 1, by = 0.05)) {
-    
+  #for (beta_delta in seq(0, 1, by = 0.05)) {
+  for (beta_delta in c(0.0, 1.0)) {  
     # simulate datasets
     set.seed(1234)
     datasets <- bayesflow::generate_from_dgp(
@@ -44,7 +44,7 @@ for (K in c(2, 10, 100)) {
     
     saveRDS(datasets, paste0("data/datasets/many_models_", 
                              "K", K, 
-                             "_beta", beta_delta, 
+                             "_beta", format(beta_delta, nsmall = 1), 
                              "_datasets.RDS"))
   }
   

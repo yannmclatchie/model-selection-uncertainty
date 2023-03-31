@@ -1,15 +1,18 @@
 library(cmdstanr)
+library(purrr)
+library(loo)
+stanfit <- function(fit) rstan::read_stan_csv(fit$output_files())
 
 args <- commandArgs(trailingOnly = TRUE)
 
-datsets_file <- args[[1]]
+datasets_file <- args[[1]]
 dataset_iter <- args[[2]]
+dataset_iter <- as.numeric(dataset_iter)
 exec <- args[[3]]
 
 datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
-
 
 compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
   # compute LOO-CV elpd difference
@@ -55,13 +58,17 @@ fit_candidate_model <- function(k, exec, data, n) {
   return(model_fit)
 }
 
-fit_all_models <- function(exec, data) {
-  n <- data$n
-  K <- data$K
+fit_all_models <- function(exec_file, data) {
+  n <- as.numeric(data$n)
+  K <- as.numeric(data$K)
   beta_delta <- data$beta_delta
   iter <- data$rep_id
   
+  # build model
+  exec <- cmdstan_model(exe_file = exec_file)
+
   # fit all models
+  print("fitting baseline model ...")
   baseline_stan_data <- list(N_train = n,
                              N_test = n,
                              d = 1,
@@ -75,9 +82,11 @@ fit_all_models <- function(exec, data) {
                 parallel_chains = 4,
                 refresh = 0)
   )
+  print("fitting candidate models ...")
   fitted_models <- 1:K |> 
     map(\(k) fit_candidate_model(k, exec, data, n))
-  
+  print("done.")
+
   # compute the difference between all models and the baseline model
   loo_elpd_differences <- fitted_models |>
     map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model))
@@ -96,8 +105,10 @@ fit_all_models <- function(exec, data) {
 }
 
 # fit all models and compute stats
-out <- fit_all_models(current_data)
+out <- fit_all_models(exec, current_data)
+K <- as.numeric(current_data$K)
+beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
                       "_iter", dataset_iter)
-saveRDS(out, file = paste0("results/", output_file, ".RDS"))
+saveRDS(out, file = paste0("data/results/", output_file, ".RDS"))
 
