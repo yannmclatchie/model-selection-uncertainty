@@ -110,5 +110,5 @@ K <- as.numeric(current_data$K)
 beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
                       "_iter", dataset_iter)
-saveRDS(out, file = paste0("data/results/", output_file, ".RDS"))
+write.csv(out, file = paste0("data/results/", output_file, ".RDS"), row.names = FALSE)
 
