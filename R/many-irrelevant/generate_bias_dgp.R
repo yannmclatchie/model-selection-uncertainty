@@ -35,13 +35,13 @@ for (K in c(2, 10, 100)) {
     set.seed(1234)
     datasets <- bayesflow::generate_from_dgp(
       dgp = simulate_data,
-      n_datasets = 100,
+      n_datasets = 5,
       n = n,
       K = K,
       eps = eps,
       beta_delta = beta_delta
     )
-    
+
     saveRDS(datasets, paste0("data/datasets/many_models_", 
                              "K", K, 
                              "_beta", format(beta_delta, nsmall = 1), 

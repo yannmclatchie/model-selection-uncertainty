@@ -106,6 +106,8 @@ fit_all_models <- function(exec_file, data) {
 
 # fit all models and compute stats
 out <- fit_all_models(exec, current_data)
+
+# save results
 K <- as.numeric(current_data$K)
 beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
