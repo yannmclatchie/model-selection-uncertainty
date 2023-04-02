@@ -1,4 +1,5 @@
 library(cmdstanr)
+stanfit <- function(fit) rstan::read_stan_csv(fit$output_files())
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -55,12 +56,15 @@ fit_candidate_model <- function(k, exec, data, n) {
   return(model_fit)
 }
 
-fit_all_models <- function(exec, data) {
-  n <- data$n
-  K <- data$K
+fit_all_models <- function(exec_file, data) {
+  n <- as.numeric(data$n)
+  K <- as.numeric(data$K)
   beta_delta <- data$beta_delta
   iter <- data$rep_id
   
+  # build model
+  exec <- cmdstan_model(exe_file = exec_file)
+
   # fit all models
   baseline_stan_data <- list(N_train = n,
                              N_test = n,
@@ -96,8 +100,24 @@ fit_all_models <- function(exec, data) {
 }
 
 # fit all models and compute stats
-out <- fit_all_models(current_data)
+out <- fit_all_models(exec, current_data)
+
+# save results
+K <- as.numeric(current_data$K)
+beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
                       "_iter", dataset_iter)
-saveRDS(out, file = paste0("results/", output_file, ".RDS"))
+saveRDS(out, file = paste0("data/results/", output_file, ".RDS"))
+
+
+n <- 512
+eps <- 1
+num_iters <- 1
+K <- 2
+beta_delta <- 1
+curr_data <- simulate_data(n, K, eps, beta_delta)
+curr_data$n <- as.character(n)
+curr_data$K <- as.character(K)
+exec_file <-  "./stan/K_model_bias"
+fit_all_models(exec_file, curr_data)
 
