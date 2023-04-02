@@ -1,16 +1,18 @@
 library(cmdstanr)
+library(purrr)
+library(loo)
 stanfit <- function(fit) rstan::read_stan_csv(fit$output_files())
 
 args <- commandArgs(trailingOnly = TRUE)
 
-datsets_file <- args[[1]]
+datasets_file <- args[[1]]
 dataset_iter <- args[[2]]
+dataset_iter <- as.numeric(dataset_iter)
 exec <- args[[3]]
 
 datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
-
 
 compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
   # compute LOO-CV elpd difference
@@ -66,6 +68,7 @@ fit_all_models <- function(exec_file, data) {
   exec <- cmdstan_model(exe_file = exec_file)
 
   # fit all models
+  print("fitting baseline model ...")
   baseline_stan_data <- list(N_train = n,
                              N_test = n,
                              d = 1,
@@ -79,9 +82,11 @@ fit_all_models <- function(exec_file, data) {
                 parallel_chains = 4,
                 refresh = 0)
   )
+  print("fitting candidate models ...")
   fitted_models <- 1:K |> 
     map(\(k) fit_candidate_model(k, exec, data, n))
-  
+  print("done.")
+
   # compute the difference between all models and the baseline model
   loo_elpd_differences <- fitted_models |>
     map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model))
@@ -101,13 +106,17 @@ fit_all_models <- function(exec_file, data) {
 
 # fit all models and compute stats
 out <- fit_all_models(exec, current_data)
+<<<<<<< HEAD
 
 # save results
+=======
+>>>>>>> 3bc9f8b80929631145d3962ee3b1ecb84b7a4d50
 K <- as.numeric(current_data$K)
 beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
                       "_iter", dataset_iter)
 saveRDS(out, file = paste0("data/results/", output_file, ".RDS"))
+<<<<<<< HEAD
 
 
 n <- 512
@@ -120,4 +129,6 @@ curr_data$n <- as.character(n)
 curr_data$K <- as.character(K)
 exec_file <-  "./stan/K_model_bias"
 fit_all_models(exec_file, curr_data)
+=======
+>>>>>>> 3bc9f8b80929631145d3962ee3b1ecb84b7a4d50
 
