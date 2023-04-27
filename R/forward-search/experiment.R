@@ -11,6 +11,8 @@ dataset_iter <- as.numeric(dataset_iter)
 datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
+df <- current_data$train
+df_test <- current_data$test
  
 # Config loads dataset configs, hyperparameters and utility functions
 source('R/forward-search/config.R')
