@@ -4,7 +4,7 @@ library(bayesflow)
 source('R/forward-search/config.R')
 
 # Generate data according to Piironen and Vehtari 2017
-generate_data = function(rep_id, n, rho) {
+generate_data = function(n, rho) {
   # number of parameters in the model
   p <- 100
   
@@ -51,10 +51,20 @@ generate_data = function(rep_id, n, rho) {
   return(data)
 }
 
+generate_train_and_test <- function(rep_id, seed, n, n_test, rho) {
+  # Keep test data fixed over different jobs...
+  df_test = withr::with_seed(seed, generate_data(n_test, rho))
+  # ...but randomize over array jobs
+  df = generate_data(n, rho)
+  return(list(train = df, test = df_test))
+}
+
 datasets <- bayesflow::generate_from_dgp(
-    dgp = generate_data,
+    dgp = generate_train_and_test,
     n_datasets = 50,
+    seed = seed,
     n = n,
+    n_test = n_test,
     rho = rho
 )
 
