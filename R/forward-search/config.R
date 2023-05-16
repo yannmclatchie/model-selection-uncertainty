@@ -1,7 +1,7 @@
 # Data generation
-n_test = 2000
-n = 400
-rho = 0.5
+n_test = 100
+n = 100
+rho = 0
 
 # R2D2 prior
 mean_r2 = 0.4
