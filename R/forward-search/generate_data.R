@@ -3,7 +3,6 @@ library(bayesflow)
 args <- commandArgs(trailingOnly = TRUE)
 
 num_iters <- as.numeric(args[[1]])
-n_test <- 2000
 
 # Import data generating settings
 source('R/forward-search/config.R')
