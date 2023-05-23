@@ -54,3 +54,10 @@ model {
   // likelihood
   y ~ normal(theta, sigma);
 }
+generated quantities {
+  // log-likelihood
+  vector[J] log_lik;
+  for (j in 1:J) {
+    log_lik[j] = normal_lpdf(y[j] | theta[j], sigma[j]);
+  }
+}
