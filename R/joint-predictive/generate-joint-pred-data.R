@@ -4,7 +4,7 @@ library(dplyr)
 args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[[1]])
 
-simulate_gaussian_data <- function(rep_id, n) {
+simulate_data <- function(rep_id, n, batch) {
   # simulate beta from standard normal
   beta_delta <- rnorm(1)
   
@@ -23,15 +23,20 @@ simulate_gaussian_data <- function(rep_id, n) {
   dd_test <- genData(n, def)
   
   # return output
-  return(list(n = n, train = dd_train, test = dd_test, beta_delta = beta_delta))
+  return(list(n = n, batch = batch, train = dd_train, test = dd_test, beta_delta = beta_delta))
 }
 
-# simulate datasets
-set.seed(1234)
-datasets <- bayesflow::generate_from_dgp(
-  dgp = simulate_data,
-  n_datasets = 1000,
-  n = n
-)
+for (batch in 1:100) {
+  print(paste0("generating batch number ",batch,"..."))
 
-saveRDS(datasets, paste0("data/datasets/jointpred_n",n,"_datasets.RDS"))
+  # simulate datasets
+  datasets <- bayesflow::generate_from_dgp(
+    dgp = simulate_data,
+    n_datasets = 1000,
+    n = n,
+    batch = batch
+  )
+
+  # save data
+  saveRDS(datasets, paste0("data/datasets/jointpred_n",n,"_batch",batch,"_datasets.RDS"))
+}

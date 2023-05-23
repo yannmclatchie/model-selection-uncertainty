@@ -1,5 +1,9 @@
 library(bayesflow)
 
+args <- commandArgs(trailingOnly = TRUE)
+
+num_iters <- as.numeric(args[[1]])
+
 # Import data generating settings
 source('R/forward-search/config.R')
 
@@ -59,13 +63,18 @@ generate_train_and_test <- function(rep_id, seed, n, n_test, rho) {
   return(list(train = df, test = df_test))
 }
 
-datasets <- bayesflow::generate_from_dgp(
-    dgp = generate_train_and_test,
-    n_datasets = 50,
-    seed = seed,
-    n = n,
-    n_test = n_test,
-    rho = rho
-)
-
-saveRDS(datasets, paste0("data/datasets/forward_search_dataset.RDS"))
+for (n in c(100, 200, 400)) {
+  for (rho in c(0.0, 0.5, 0.9)) {
+    datasets <- bayesflow::generate_from_dgp(
+      dgp = generate_train_and_test,
+      n_datasets = num_iters,
+      seed = seed,
+      n = n,
+      n_test = n_test,
+      rho = rho
+    )
+    dataset_file <- paste0("data/datasets/forward/forward_dataset_",n,"_",rho,".RDS")
+    print(dataset_file)
+    saveRDS(datasets, dataset_file)
+  }
+}

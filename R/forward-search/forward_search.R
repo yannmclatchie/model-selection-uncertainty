@@ -5,9 +5,11 @@ get_elpd_loo = function(model) {
   return(model$loo$estimates['elpd_loo', 'Estimate'])
 }
 
+
 get_elpd_test = function(model, data) {
   return(elpd(log_lik(model, newdata=data))$estimates['elpd', 'Estimate'])
 }
+
 
 run_forward_selection = function(model, train_data, test_data, prior, ...) {
   out = forward_selection(model, train_data, prior)
@@ -39,6 +41,7 @@ run_forward_selection = function(model, train_data, test_data, prior, ...) {
   results = compute_elpd_diff(results)
   return(list(results = results, candidates = candidates))
 }
+
 
 forward_selection = function(model, train_data, prior) {
   # Initial set of predictors
@@ -85,6 +88,7 @@ update_model = function(model, train_data, x, prior) {
   model_new$loo = loo(model_new)
   return(list(model=model_new, variable=x))
 }
+
 
 forward_step = function(model, train_data, predictors, prior) {
   candidate_models = lapply(predictors, function(x) update_model(model, train_data, x, prior))

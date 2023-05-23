@@ -7,8 +7,10 @@ args <- commandArgs(trailingOnly = TRUE)
 
 datasets_file <- args[[1]]
 dataset_iter <- args[[2]]
+dataset_batch <- args[[3]]
 dataset_iter <- as.numeric(dataset_iter)
-exec_file <- args[[3]]
+dataset_batch <- as.numeric(dataset_batch)
+exec_file <- args[[4]]
 
 datasets <- readRDS(datasets_file)
 
@@ -99,8 +101,8 @@ experiment <- function(exec_file, data) {
 }
 
 # run experiment
-results <- experiment(exec_file, data)
+results <- experiment(exec_file, current_data)
 
 # save the results
-write.csv(results, file = paste0("data/results/jointpred_iter",dataset_iter,".csv"),
+write.csv(results, file = paste0("data/results/joint-predictive/jointpred_iter",dataset_iter,"_batch",dataset_batch,".csv"),
           row.names = FALSE)

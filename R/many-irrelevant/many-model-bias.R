@@ -1,11 +1,8 @@
 library(cmdstanr)
 library(simstudy)
 library(loo)
-library(ggplot2)
-library(geomtextpath)
 library(dplyr)
 library(purrr)
-stanfit <- function(fit) rstan::read_stan_csv(fit$output_files())
 
 simulate_data <- function(n, K, eps, beta_delta) {
   # define the DGP 
@@ -25,8 +22,8 @@ simulate_data <- function(n, K, eps, beta_delta) {
 
 compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
   # compute LOO-CV elpd difference
-  log_lik_Ma <- extract_log_lik(Ma_fit, merge_chains = FALSE)
-  log_lik_Mb <- extract_log_lik(Mb_fit, merge_chains = FALSE)
+  log_lik_Ma <- Ma_fit$draws("log_lik")
+  log_lik_Mb <- Mb_fit$draws("log_lik")
   r_eff_Ma <- relative_eff(exp(log_lik_Ma))
   r_eff_Mb <- relative_eff(exp(log_lik_Mb))
   loo_Ma <- loo(log_lik_Ma, r_eff = r_eff_Ma, cores = 2)
@@ -38,10 +35,8 @@ compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
 
 compute_test_elpd_difference <- function(Ma_fit, Mb_fit) {
   # compute test elpd difference
-  test_log_lik_Ma <- extract_log_lik(Ma_fit, 
-                                     parameter_name = "log_lik_test")
-  test_log_lik_Mb <- extract_log_lik(Mb_fit, 
-                                     parameter_name = "log_lik_test")
+  test_log_lik_Ma <- Ma_fit$draws("log_lik_test")
+  test_log_lik_Mb <- Mb_fit$draws("log_lik_test")
   elpd_Ma <- elpd(test_log_lik_Ma)
   elpd_Mb <- elpd(test_log_lik_Mb)
   elpd_diff <- sum(elpd_Ma$pointwise[,"elpd"] 
@@ -61,12 +56,10 @@ fit_candidate_model <- function(k, exec, data, n) {
                     x_test = as.matrix(data$test)[, paste0("x", c(0, k))],
                     y_train = data$train$y,
                     y_test = data$test$y)
-  model_fit <- stanfit(
-    exec$sample(data = stan_data,
-                chains = 4,
-                parallel_chains = 4,
-                refresh = 0)
-  )
+  model_fit <- exec$sample(data = stan_data,
+                           chains = 4,
+                           parallel_chains = 4,
+                           refresh = 0)
   return(model_fit)
 }
 
@@ -82,12 +75,10 @@ one_step <- function(iter, n, K, eps, beta_delta) {
                              x_test = as.matrix(data$test$x0),
                              y_train = data$train$y,
                              y_test = data$test$y)
-  baseline_model <- stanfit(
-    exec$sample(data = baseline_stan_data,
-                chains = 4,
-                parallel_chains = 4,
-                refresh = 0)
-  )
+  baseline_model <- exec$sample(data = baseline_stan_data,
+                                chains = 4,
+                                parallel_chains = 4,
+                                refresh = 0)
   fitted_models <- 1:K |> 
     map(\(k) fit_candidate_model(k, exec, data, n))
   
