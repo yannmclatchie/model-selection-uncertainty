@@ -4,13 +4,15 @@ library(ggExtra)
 library(loo)
 library(brms)
 
-set.seed(300416)
-setwd("~/Desktop/")
+setwd("~/Desktop/model-selection-uncertainty")
+source("./R/utils.R")
+
+set.seed(210426)
 
 ## data processing
 ## ---------------
 
-acti_data <- read.csv("./projpred-workflow/data/monkeys/activity_data.csv") 
+acti_data <- read.csv("./data/monkeys/activity_data.csv") 
 activity_2mins <- acti_data %>%
   filter(obs<9) %>% group_by(subj_id, Day) %>%
   summarize(total=sum(Activity), 
@@ -88,7 +90,6 @@ p <- data.frame(elpd1 = elpd_nopool, elpd2 = elpd_pool) %>%
   theme_bw()
 p <- ggMarginal(p, type = "density")
 p
-ggsave(
-  plot = p, 
-  filename = "./img/elpd-pairs.pdf"
-)
+
+# save plot to tikz
+save_tikz_plot(plot = p, filename = "./tex/elpd-pairs.tex", asp = 1)

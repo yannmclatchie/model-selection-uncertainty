@@ -67,6 +67,9 @@ one_step <- function(iter, n, K, eps, beta_delta) {
   # simulate data
   data <- simulate_data(n, K, eps, beta_delta)
   
+  # recover model
+  model <- cmdstan_model(exe_file = )
+  
   # fit all models
   baseline_stan_data <- list(N_train = n,
                              N_test = n,
@@ -109,11 +112,63 @@ experiment <- function(n, K, num_iters, eps, beta_delta) {
 # vary both the number of data observations and the correlation between parameters
 n <- 512
 eps <- 1
-num_iters <- 100
-Ks <- c(2, 10, 100)
-betas <- seq(0,1,length.out=25)
-options <- expand.grid(n=n, K=Ks, num_iters=num_iters, eps=eps, beta=betas)
-
+num_iters <- 1
+K <- 2
+beta_delta <- 1
 
 # run experiment
 out <- experiment(n, K, num_iters, eps, beta_delta)
+
+
+## ----
+
+# simulate data
+data <- simulate_data(n, K, eps, beta_delta)
+
+# recover model
+model <- cmdstan_model(exe_file = "stan/K_model_bias")
+
+# fit all models
+baseline_stan_data <- list(N_train = n,
+                           N_test = n,
+                           d = 1,
+                           x_train = as.matrix(data$train$x0),
+                           x_test = as.matrix(data$test$x0),
+                           y_train = data$train$y,
+                           y_test = data$test$y)
+baseline_model <- model$sample(data = baseline_stan_data,
+                              chains = 4,
+                              parallel_chains = 4,
+                              refresh = 0)
+stan_data <- list(N_train = n,
+                  N_test = n,
+                  d = 2,
+                  x_train = as.matrix(data$train)[, paste0("x", c(0, 1))],
+                  x_test = as.matrix(data$test)[, paste0("x", c(0, 1))],
+                  y_train = data$train$y,
+                  y_test = data$test$y)
+model_fit <- model$sample(data = stan_data,
+                        chains = 4,
+                        parallel_chains = 4,
+                        refresh = 0)
+
+library(loo)
+compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
+  # compute LOO-CV elpd difference
+  log_lik_Ma <- Ma_fit$draws("log_lik_test")
+  log_lik_Mb <- Mb_fit$draws("log_lik_test")
+  r_eff_Ma <- relative_eff(exp(log_lik_Ma))
+  r_eff_Mb <- relative_eff(exp(log_lik_Mb))
+  loo_Ma <- loo(log_lik_Ma, r_eff = r_eff_Ma, cores = 2)
+  loo_Mb <- loo(log_lik_Mb, r_eff = r_eff_Mb, cores = 2)
+  loo_elpd_diff <- sum(loo_Ma$pointwise[,"elpd_loo"] 
+                       - loo_Mb$pointwise[,"elpd_loo"])
+  return(loo_elpd_diff)
+}
+
+compute_loo_elpd_difference(model_fit, baseline_model)
+
+
+
+
+

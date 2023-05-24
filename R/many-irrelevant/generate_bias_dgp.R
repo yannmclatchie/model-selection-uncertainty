@@ -36,7 +36,7 @@ for (K in c(2, 10, 100)) {
   
   for (beta_delta in round(10^(seq(-3,0,by=0.25)), 5)) {
     print(paste0("K: ",K," beta: ",beta_delta))
-
+    
     # simulate datasets
     set.seed(1234)
     datasets <- bayesflow::generate_from_dgp(

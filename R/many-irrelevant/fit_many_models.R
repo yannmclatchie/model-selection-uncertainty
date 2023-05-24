@@ -106,4 +106,3 @@ beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("many_models_results_","K",K,"_beta", beta_delta, 
                       "_iter", dataset_iter)
 write.csv(out, file = paste0("data/results/many-irrelevant/", output_file, ".csv"), row.names = FALSE)
-

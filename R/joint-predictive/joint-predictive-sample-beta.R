@@ -106,3 +106,14 @@ results <- experiment(exec_file, current_data)
 # save the results
 write.csv(results, file = paste0("data/results/joint-predictive/jointpred_iter",dataset_iter,"_batch",dataset_batch,".csv"),
           row.names = FALSE)
+
+
+list.files('./data/results/joint-predictive/', pattern = "jointpred_iter*", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  bind_rows %>%
+  write_csv('data/results/joint-predictive/jointpred_all.csv')
+
+list.files('./data/results/many-irrelevant/', pattern = "many_models_results*", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  bind_rows %>%
+  write_csv('data/results/many-irrelevant/many_models_all.csv')
