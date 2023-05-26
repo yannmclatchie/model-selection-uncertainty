@@ -1,6 +1,7 @@
 library(cmdstanr)
 library(purrr)
 library(loo)
+library(dplyr)
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -13,7 +14,7 @@ datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
 
-compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
+compute_loo_elpd_difference <- function(Ma_fit, Mb_fit, n) {
   # compute LOO-CV elpd difference
   log_lik_Ma <- Ma_fit$draws("log_lik")
   log_lik_Mb <- Mb_fit$draws("log_lik")
@@ -23,7 +24,9 @@ compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
   loo_Mb <- loo(log_lik_Mb, r_eff = r_eff_Mb, cores = 2)
   loo_elpd_diff <- sum(loo_Ma$pointwise[,"elpd_loo"] 
                        - loo_Mb$pointwise[,"elpd_loo"])
-  return(loo_elpd_diff)
+  loo_elpd_diff_se  <- sd(loo_Ma$pointwise[, 'elpd_loo'] - 
+                                     loo_Mb$pointwise[, 'elpd_loo']) * sqrt(n)
+  return(list(loo_elpd_diff = loo_elpd_diff, loo_elpd_diff_sd = loo_elpd_diff_se))
 }
 
 compute_test_elpd_difference <- function(Ma_fit, Mb_fit) {
@@ -80,12 +83,11 @@ fit_all_models <- function(exec_file, data) {
   print("done.")
   
   # compute the difference between all models and the baseline model
-  loo_elpd_differences <- fitted_models |>
-    map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model))
-  
+  out <- fitted_models |>
+    map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model, n)) |>
+    bind_rows()
+
   # build dataframe of results
-  out <- data.frame(sapply(loo_elpd_differences,c))
-  names(out) <- c("loo_elpd_diff")
   out$K <- K
   out$iter <- iter
   return(out)
