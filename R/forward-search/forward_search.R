@@ -11,8 +11,9 @@ get_elpd_test = function(model, data) {
 }
 
 
-run_forward_selection = function(model, train_data, test_data, prior, ...) {
-  out = forward_selection(model, train_data, prior)
+run_forward_selection = function(model, train_data, test_data, prior, 
+                                 steps = NA, ...) {
+  out = forward_selection(model, train_data, prior, steps)
   candidates = out$candidates
   models = out$models
   # Create tibble from results
@@ -43,11 +44,11 @@ run_forward_selection = function(model, train_data, test_data, prior, ...) {
 }
 
 
-forward_selection = function(model, train_data, prior) {
+forward_selection = function(model, train_data, prior, steps) {
   # Initial set of predictors
   cols = names(train_data)
   predictors = cols[which('y'!=cols)]
-  steps = length(predictors)
+  if (is.na(steps)) {steps = length(predictors)}
   # Forward step function returns this format
   # Field `variable` contains the choses predictor
   new = list(model=model, variable=model$variable)
@@ -81,6 +82,9 @@ update_model = function(model, train_data, x, prior) {
                        newdata=train_data, 
                        formula=formula_new,
                        prior=prior,
+                       chains = 4, 
+                       cores = Sys.getenv('SLURM_CPUS_PER_TASK'), 
+                       backend = "cmdstanr",
                        refresh=0)
   } else {
     stop()

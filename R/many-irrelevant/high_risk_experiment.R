@@ -25,7 +25,7 @@ compute_loo_elpd_difference <- function(Ma_fit, Mb_fit, n) {
   loo_elpd_diff <- sum(loo_Ma$pointwise[,"elpd_loo"] 
                        - loo_Mb$pointwise[,"elpd_loo"])
   loo_elpd_diff_se  <- sd(loo_Ma$pointwise[, 'elpd_loo'] - 
-                                     loo_Mb$pointwise[, 'elpd_loo']) * sqrt(n)
+                          loo_Mb$pointwise[, 'elpd_loo']) * sqrt(n)
   return(list(loo_elpd_diff = loo_elpd_diff, loo_elpd_diff_sd = loo_elpd_diff_se))
 }
 

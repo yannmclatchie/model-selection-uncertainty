@@ -1,11 +1,12 @@
-run_projpred_varsel = function(ref_model, test_data, ...) {
+run_projpred_varsel = function(ref_model, test_data, steps = NA, ...) {
   p = ncol(test_data)-1
   n = nrow(test_data)
+  if (is.na(steps)) {steps = p}
   # Run forward search
   varsel_ref = varsel(
     ref_model, 
     method='forward', 
-    nterms_max=p
+    nterms_max=steps
   )
   
   # Do it again, but for independent test data
@@ -18,7 +19,7 @@ run_projpred_varsel = function(ref_model, test_data, ...) {
   varsel_ref_test = varsel(
     ref_model, 
     method='forward', 
-    nterms_max=p, 
+    nterms_max=steps, 
     d_test=d_test
   )
   
@@ -45,11 +46,11 @@ combine_varsels = function(varsel_train, varsel_test) {
   summary_train = summary(varsel_train, 
                           stats=c('elpd'), 
                           type = c('mean', 'se', 'diff', 'diff.se')
-                          )$selection
+  )$selection
   summary_test = summary(varsel_test,
                          stats=c('elpd'), 
                          type = c('mean', 'se', 'diff', 'diff.se')
-                         )$selection
+  )$selection
   # Rename columns
   names(summary_train) = c('size', 'solution_terms', 'elpd_loo', 'elpd_loo_se', 'elpd_loo_diff_ref', 'elpd_loo_diff_ref_se')
   names(summary_test) = c('size', 'solution_terms', 'elpd_test', 'elpd_test_se', 'elpd_test_diff_ref', 'elpd_test_diff_ref_se')
