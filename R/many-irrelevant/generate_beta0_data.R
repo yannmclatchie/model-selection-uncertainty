@@ -7,16 +7,12 @@ eps <- as.numeric(args[[2]])
 
 simulate_data <- function(rep_id, n, K, eps, beta_delta = 0) {
   # define the DGP 
-  def <- defData(varname = "x0", formula = "10", variance = "10", dist = "normal")
-  def <- defRepeat(def, nVars = K, prefix = "x", formula = "..eps",
-                   variance = "10", dist = "normal")
-  def <- defData(def, "yInlier", formula = "1 + x0 + ..beta_delta * x1", 
+  def <- defData(varname = "x0", formula = "10", variance = "..eps", 
+                 dist = "normal")
+  def <- defRepeat(def, nVars = K, prefix = "x", formula = "0",
+                   variance = "..eps", dist = "normal")
+  def <- defData(def, "y", formula = "1 + x0 + ..beta_delta * x1", 
                  variance = "..eps", dist = "normal")
-  def <- defData(def, varname = "yOutlier", formula = "50", 
-                 variance = "..eps", dist = "normal")
-  def <- defData(def, varname = "y", 
-                 formula = "yInlier | .8 + yOutlier | .2", 
-                 dist = "mixture")
 
   # generate the data
   dd_train <- genData(n, def)
