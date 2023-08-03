@@ -31,7 +31,7 @@ simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
 }
 
 # define values of beta_delta
-beta_deltas <- round(2^(seq(-4,1,length.out = 20)), 3)
+beta_deltas <- round(2^(seq(-7,1,length.out = 20)), 3)
 
 for (K in c(2, 10, 100)) {
   
