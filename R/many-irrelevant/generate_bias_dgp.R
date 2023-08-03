@@ -2,10 +2,11 @@ library(simstudy)
 library(bayesflow)
 
 args <- commandArgs(trailingOnly = TRUE)
-n <- as.numeric(args[[1]])
-eps <- as.numeric(args[[2]])
+n <- as.numeric(args[[1]]) # n = 100
+n_test <- as.numeric(args[[2]]) # n_test = 4000
+eps <- as.numeric(args[[3]]) # eps = 1
 
-simulate_data <- function(rep_id, n, K, eps, beta_delta) {
+simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
   # define the DGP 
   def <- defData(varname = "x0", formula = "10", variance = "..eps", 
                  dist = "normal")
@@ -16,13 +17,14 @@ simulate_data <- function(rep_id, n, K, eps, beta_delta) {
   
   # generate the data
   dd_train <- genData(n, def)
-  dd_test <- genData(n, def)
+  dd_test <- genData(n_test, def)
   
   # return output
   return(list(train = dd_train, 
               test = dd_test, 
               rep_id = rep_id,
               n = n, 
+              n_test = n_test,
               K = K, 
               eps = eps, 
               beta_delta = beta_delta))
@@ -39,6 +41,7 @@ for (K in c(2, 10, 100)) {
       dgp = simulate_data,
       n_datasets = 100,
       n = n,
+      n_test = n_test,
       K = K,
       eps = eps,
       beta_delta = beta_delta
