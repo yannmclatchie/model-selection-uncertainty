@@ -78,7 +78,7 @@ fit_all_models <- function(exec_file, data) {
                                 parallel_chains = 4,
                                 refresh = 0)
   print("fitting candidate models ...")
-  fitted_models <- 1:K |> 
+  fitted_models <- 1:(K - 1) |> 
     map(\(k) fit_candidate_model(k, exec, data, n, n_test))
   print("done.")
 
@@ -92,7 +92,7 @@ fit_all_models <- function(exec_file, data) {
   out <- cbind(data.frame(sapply(loo_elpd_differences,c)),
                data.frame(sapply(test_elpd_differences,c)))
   names(out) <- c("loo_elpd_diff", "test_elpd_diff")
-  out$model <- 1:K
+  out$model <- 1:(K - 1)
   out$K <- K
   out$n <- n
   out$n_test <- n_test
