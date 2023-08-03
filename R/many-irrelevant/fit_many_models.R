@@ -38,9 +38,9 @@ compute_test_elpd_difference <- function(Ma_fit, Mb_fit) {
 }
 
 # define model-fitting method
-fit_candidate_model <- function(k, exec, data, n) {
+fit_candidate_model <- function(k, exec, data, n, n_test) {
   stan_data <- list(N_train = n,
-                    N_test = n,
+                    N_test = n_test,
                     d = 2,
                     x_train = as.matrix(data$train)[, paste0("x", c(0, k))],
                     x_test = as.matrix(data$test)[, paste0("x", c(0, k))],
@@ -55,6 +55,8 @@ fit_candidate_model <- function(k, exec, data, n) {
 
 fit_all_models <- function(exec_file, data) {
   n <- as.numeric(data$n)
+  n_test <- as.numeric(data$n_test)
+  eps <- as.numeric(data$eps)
   K <- as.numeric(data$K)
   beta_delta <- data$beta_delta
   iter <- data$rep_id
@@ -65,7 +67,7 @@ fit_all_models <- function(exec_file, data) {
   # fit all models
   print("fitting baseline model ...")
   baseline_stan_data <- list(N_train = n,
-                             N_test = n,
+                             N_test = n_test,
                              d = 1,
                              x_train = as.matrix(data$train$x0),
                              x_test = as.matrix(data$test$x0),
@@ -77,7 +79,7 @@ fit_all_models <- function(exec_file, data) {
                                 refresh = 0)
   print("fitting candidate models ...")
   fitted_models <- 1:K |> 
-    map(\(k) fit_candidate_model(k, exec, data, n))
+    map(\(k) fit_candidate_model(k, exec, data, n, n_test))
   print("done.")
 
   # compute the difference between all models and the baseline model
@@ -92,6 +94,9 @@ fit_all_models <- function(exec_file, data) {
   names(out) <- c("loo_elpd_diff", "test_elpd_diff")
   out$model <- 1:K
   out$K <- K
+  out$n <- n
+  out$n_test <- n_test
+  out$eps <- eps
   out$iter <- iter
   out$beta <- beta_delta
   return(out)
