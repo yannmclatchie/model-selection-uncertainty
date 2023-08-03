@@ -8,11 +8,11 @@ eps <- as.numeric(args[[3]]) # eps = 1
 
 simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
   # define the DGP 
-  def <- defData(varname = "x0", formula = "10", variance = "..eps", 
+  def <- defData(varname = "x0", formula = "1", variance = "..eps", 
                  dist = "normal")
-  def <- defRepeat(def, nVars = K, prefix = "x", formula = "0",
+  def <- defRepeat(def, nVars = K - 1, prefix = "x", formula = "0",
                    variance = "..eps", dist = "normal")
-  def <- defData(def, "y", formula = "1 + x0 + ..beta_delta * x1", 
+  def <- defData(def, "y", formula = "1 * x0 + ..beta_delta * x1", 
                  variance = "..eps", dist = "normal")
   
   # generate the data
@@ -30,9 +30,12 @@ simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
               beta_delta = beta_delta))
 }
 
+# define values of beta_delta
+beta_deltas <- round(2^(seq(-4,1,length.out = 20)), 3)
+
 for (K in c(2, 10, 100)) {
   
-  for (beta_delta in round(10^(seq(-3,0,by=0.25)), 5)) {
+  for (beta_delta in beta_deltas) {
     print(paste0("K: ",K," beta: ",beta_delta))
     
     # simulate datasets
