@@ -4,15 +4,17 @@ library(bayesflow)
 args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[[1]]) # n = 100
 n_test <- as.numeric(args[[2]]) # n_test = 1000
-eps <- as.numeric(args[[3]]) # eps = 1
 
-simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
+simulate_data <- function(rep_id, n, n_test, K, beta_delta) {
+  # compute the SNR to keep marginal variance fixed
+  sigma2 <- 1 - beta_delta^2
+  
   # define the DGP 
   def <- defData(varname = "x0", formula = "1")
   def <- defRepeat(def, nVars = K - 1, prefix = "x", formula = "0",
                    variance = "1", dist = "normal")
   def <- defData(def, "y", formula = "1 * x0 + ..beta_delta * x1", 
-                 variance = "..eps", dist = "normal")
+                 variance = "..sigma2", dist = "normal")
   
   # generate the data
   dd_train <- genData(n, def)
@@ -25,12 +27,13 @@ simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
               n = n, 
               n_test = n_test,
               K = K, 
-              eps = eps, 
+              sigma2 = sigma2, 
+              snr = beta_delta^2 / sigma2,
               beta_delta = beta_delta))
 }
 
 # define values of beta_delta
-beta_deltas <- round(10^(seq(-3,1,by=0.25)), 3)
+beta_deltas <- round(10^(seq(-3, -0.001, length.out = 15)), 3)
 
 for (K in c(2, 10, 100)) {
   
@@ -45,7 +48,6 @@ for (K in c(2, 10, 100)) {
       n = n,
       n_test = n_test,
       K = K,
-      eps = eps,
       beta_delta = beta_delta
     )
 

@@ -16,7 +16,7 @@ parameters {
 }
 model {
   // priors
-  beta ~ std_normal();
+  beta ~ normal(0, 10);
   sigma ~ std_normal();
   // likelihood
   y_train ~ normal(x_train * beta, sigma);
