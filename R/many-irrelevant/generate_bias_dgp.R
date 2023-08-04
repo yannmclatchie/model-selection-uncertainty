@@ -3,15 +3,15 @@ library(bayesflow)
 
 args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[[1]]) # n = 100
-n_test <- as.numeric(args[[2]]) # n_test = 4000
-eps <- as.numeric(args[[3]]) # eps = 1
+n_test <- as.numeric(args[[2]]) # n_test = 100
+eps <- as.numeric(args[[3]]) # eps = 10
 
 simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
   # define the DGP 
-  def <- defData(varname = "x0", formula = "1", variance = "..eps", 
+  def <- defData(varname = "x0", formula = "1", variance = "1", 
                  dist = "normal")
   def <- defRepeat(def, nVars = K - 1, prefix = "x", formula = "0",
-                   variance = "..eps", dist = "normal")
+                   variance = "1", dist = "normal")
   def <- defData(def, "y", formula = "1 * x0 + ..beta_delta * x1", 
                  variance = "..eps", dist = "normal")
   
