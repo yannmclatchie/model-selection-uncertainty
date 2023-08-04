@@ -11,13 +11,11 @@ data {
   vector[N_test] y_test;
 }
 parameters {
-  real alpha;
   vector[d] beta;
   real<lower=0> sigma;
 }
 model {
   // priors
-  alpha ~ std_normal();
   beta ~ std_normal();
   sigma ~ std_normal();
   // likelihood
@@ -28,10 +26,10 @@ generated quantities {
   vector[N_test] log_lik_test;
   // in-sample log-likelihood
   for (n in 1:N_train) {
-    log_lik[n] = normal_lpdf(y_train[n] | alpha + x_train[n] * beta, sigma);
+    log_lik[n] = normal_lpdf(y_train[n] | x_train[n] * beta, sigma);
   }
   // test log-likelihood
   for (n in 1:N_test) {
-    log_lik_test[n] = normal_lpdf(y_test[n] | alpha + x_test[n] * beta, sigma);
+    log_lik_test[n] = normal_lpdf(y_test[n] | x_test[n] * beta, sigma);
   }
 }
