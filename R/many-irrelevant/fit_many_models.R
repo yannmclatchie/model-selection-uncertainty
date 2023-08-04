@@ -13,28 +13,15 @@ datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
 
-compute_loo_elpd_difference <- function(Ma_fit, Mb_fit) {
-  # compute LOO-CV elpd difference
-  log_lik_Ma <- Ma_fit$draws("log_lik")
-  log_lik_Mb <- Mb_fit$draws("log_lik")
-  r_eff_Ma <- relative_eff(exp(log_lik_Ma))
-  r_eff_Mb <- relative_eff(exp(log_lik_Mb))
-  loo_Ma <- loo(log_lik_Ma, r_eff = r_eff_Ma, cores = 2)
-  loo_Mb <- loo(log_lik_Mb, r_eff = r_eff_Mb, cores = 2)
-  loo_elpd_diff <- sum(loo_Ma$pointwise[,"elpd_loo"] 
-                       - loo_Mb$pointwise[,"elpd_loo"])
-  return(loo_elpd_diff)
+compute_loo_elpd <- function(model_fit) {
+  loo_obj <- model_fit$loo()
+  loo_obj$estimates["elpd_loo", "Estimate"]
 }
 
-compute_test_elpd_difference <- function(Ma_fit, Mb_fit) {
-  # compute test elpd difference
-  test_log_lik_Ma <- Ma_fit$draws("log_lik_test")
-  test_log_lik_Mb <- Mb_fit$draws("log_lik_test")
-  elpd_Ma <- elpd(test_log_lik_Ma)
-  elpd_Mb <- elpd(test_log_lik_Mb)
-  elpd_diff <- sum(elpd_Ma$pointwise[,"elpd"] 
-                   - elpd_Mb$pointwise[,"elpd"])
-  return(elpd_diff)
+compute_test_elpd <- function(model_fit) {
+  test_log_lik <- model_fit$draws("log_lik_test")
+  elpd_model <- elpd(test_log_lik)
+  sum(elpd_model$pointwise[,"elpd"])
 }
 
 # define model-fitting method
@@ -83,15 +70,19 @@ fit_all_models <- function(exec_file, data) {
   print("done.")
 
   # compute the difference between all models and the baseline model
-  loo_elpd_differences <- fitted_models |>
-    map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model))
-  test_elpd_differences <- fitted_models |>
-    map(\(Ma_fit) compute_test_elpd_difference(Ma_fit, baseline_model))
+  loo_elpds <- fitted_models |>
+    map(\(Ma_fit) compute_loo_elpd(Ma_fit))
+  test_elpds <- fitted_models |>
+    map(\(Ma_fit) compute_test_elpd(Ma_fit))
+  baseline_loo_elpd <- compute_loo_elpd(baseline_model)
+  baseline_test_elpd <- compute_test_elpd(baseline_model)
   
   # build dataframe of results
-  out <- cbind(data.frame(sapply(loo_elpd_differences,c)),
-               data.frame(sapply(test_elpd_differences,c)))
-  names(out) <- c("loo_elpd_diff", "test_elpd_diff")
+  out <- cbind(data.frame(sapply(loo_elpds,c)),
+               data.frame(sapply(test_elpds,c)),
+               data.frame(sapply(baseline_loo_elpd,c)),
+               data.frame(sapply(baseline_test_elpd,c)))
+  names(out) <- c("loo_elpd", "test_elpd", "baseline_loo_elpd", "baseline_test_elpd")
   out$model <- 1:(K - 1)
   out$K <- K
   out$n <- n

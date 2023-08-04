@@ -3,7 +3,7 @@ library(bayesflow)
 
 args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[[1]]) # n = 100
-n_test <- as.numeric(args[[2]]) # n_test = 100
+n_test <- as.numeric(args[[2]]) # n_test = 1000
 eps <- as.numeric(args[[3]]) # eps = 1
 
 simulate_data <- function(rep_id, n, n_test, K, eps, beta_delta) {
