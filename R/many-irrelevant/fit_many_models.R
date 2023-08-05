@@ -43,7 +43,8 @@ fit_candidate_model <- function(k, exec, data, n, n_test) {
 fit_all_models <- function(exec_file, data) {
   n <- as.numeric(data$n)
   n_test <- as.numeric(data$n_test)
-  eps <- as.numeric(data$eps)
+  sigma <- as.numeric(data$sigma)
+  snr <- as.numeric(data$snr)
   K <- as.numeric(data$K)
   beta_delta <- data$beta_delta
   iter <- data$rep_id
@@ -76,7 +77,7 @@ fit_all_models <- function(exec_file, data) {
     map(\(Ma_fit) compute_test_elpd(Ma_fit))
   baseline_loo_elpd <- compute_loo_elpd(baseline_model)
   baseline_test_elpd <- compute_test_elpd(baseline_model)
-  
+
   # build dataframe of results
   out <- cbind(data.frame(sapply(loo_elpds,c)),
                data.frame(sapply(test_elpds,c)),
@@ -87,7 +88,8 @@ fit_all_models <- function(exec_file, data) {
   out$K <- K
   out$n <- n
   out$n_test <- n_test
-  out$eps <- eps
+  out$sigma <- sigma
+  out$snr <- snr
   out$iter <- iter
   out$beta <- beta_delta
   return(out)
