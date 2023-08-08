@@ -41,7 +41,6 @@ for (K in c(2, 10, 100)) {
     print(paste0("K: ",K," beta: ",beta_delta))
     
     # simulate datasets
-    set.seed(1234)
     datasets <- bayesflow::generate_from_dgp(
       dgp = simulate_data,
       n_datasets = 100,
@@ -55,6 +54,6 @@ for (K in c(2, 10, 100)) {
                              "K", K, 
                              "_beta", format(beta_delta, nsmall = 2), 
                              "_datasets.RDS"))
+    print("done")
   }
-  
 }
