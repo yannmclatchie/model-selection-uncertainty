@@ -90,7 +90,7 @@ order_stat_heuristic <- function(k, mu = 0, sd = 1) {
                                                  mu = 0,
                                                  sd = candidate_sd),
            corrected_diff = case_when(abs(elpd_loo_diff) > estimated_bias ~ elpd_loo_diff,
-                                      abs(elpd_loo_diff) <= estimated_bias ~ diff_median)) |>
+                                      abs(elpd_loo_diff) <= estimated_bias ~ elpd_loo_diff - 1.5 * estimated_bias)) |>
     ungroup() )
 
 # correct the bias with the estimate
@@ -146,7 +146,7 @@ order_stat_df <-  means |>
 order_stat_df
 
 # plot the results
-prior_to_plot <- "R2D2 prior"
+prior_to_plot <- "R2D2 prior" # "Normal prior"
 prior_means <- means |> filter(name == prior_to_plot)
 over_fitting_df_means <- over_fitting_df |> filter(name == prior_to_plot)
 order_stat_df_means <- order_stat_df |> filter(name == prior_to_plot)
@@ -200,5 +200,126 @@ p <- fs_mlpds |>
         legend.position="none") 
 p
 #save_tikz_plot(p, width = 5, filename = "./tex/gaussian-forward.tex")
-save_tikz_plot(p, width = 5, filename = "./tex/r2d2-forward.tex")
+#save_tikz_plot(p, width = 5, filename = "./tex/r2d2-forward.tex")
 
+
+##
+## Using different asymptotic correlation assumptions
+##
+
+# compute the estimated bias
+( fs_with_bias_multi <- fs_with_base |> 
+    #filter(size > 0) |>
+    group_by(name, iter, n, rho) |>
+    mutate(estimated_bias = order_stat_heuristic(k = n_pars + 1 - size, 
+                                                 mu = 0,
+                                                 sd = candidate_sd),
+           corrected_diff_1 = case_when(abs(elpd_loo_diff) > estimated_bias ~ elpd_loo_diff,
+                                      abs(elpd_loo_diff) <= estimated_bias ~ elpd_loo_diff - 1 * estimated_bias),
+           corrected_diff_15 = case_when(abs(elpd_loo_diff) > estimated_bias ~ elpd_loo_diff,
+                                        abs(elpd_loo_diff) <= estimated_bias ~ elpd_loo_diff - 1.5 * estimated_bias),
+           corrected_diff_2 = case_when(abs(elpd_loo_diff) > estimated_bias ~ elpd_loo_diff,
+                                        abs(elpd_loo_diff) <= estimated_bias ~ elpd_loo_diff - 2 * estimated_bias)) |>
+    ungroup() )
+
+# correct the bias with the estimate
+( fs_corrected_multi <- fs_with_bias_multi |>
+    group_by(name, n, iter, rho) |>
+    mutate(corrected_diff_1 = ifelse(is.na(corrected_diff_1), 0, corrected_diff_1),
+           corrected_diff_15 = ifelse(is.na(corrected_diff_15), 0, corrected_diff_15),
+           corrected_diff_2 = ifelse(is.na(corrected_diff_2), 0, corrected_diff_2),
+           corrected_loo_1 = base_elpd_loo + cumsum(corrected_diff_1),
+           corrected_loo_15 = base_elpd_loo + cumsum(corrected_diff_15),
+           corrected_loo_2 = base_elpd_loo + cumsum(corrected_diff_2)) |>
+    ungroup() )
+
+# compute mlpds
+( fs_mlpds_multi <- fs_corrected_multi |>
+    group_by(name, iter, n, rho) |>
+    mutate(mlpd_loo = (elpd_loo - elpd_loo_ref) / n, 
+           mlpd_test = (elpd_test - elpd_test_ref) / n_test,
+           mlpd_corrected_1 = (corrected_loo_1 - elpd_loo_ref) / n,
+           mlpd_corrected_15 = (corrected_loo_15 - elpd_loo_ref) / n,
+           mlpd_corrected_2 = (corrected_loo_2 - elpd_loo_ref) / n) |>
+    ungroup() )
+
+# compute the means over iterations
+( means_multi <-  fs_mlpds_multi |>
+    group_by(name, size, n, rho) |>
+    summarize(mean_mlpd_loo = mean(mlpd_loo),
+              mean_mlpd_corrected_1 = mean(mlpd_corrected_1),
+              mean_mlpd_corrected_15 = mean(mlpd_corrected_15),
+              mean_mlpd_corrected_2 = mean(mlpd_corrected_2),
+              mean_mlpd_test = mean(mlpd_test)) |>
+    ungroup() )
+
+# identify the point of maximal over-fitting
+( over_fitting_df_multi <- means_multi |>
+    group_by(name, n, rho) |>
+    filter(mean_mlpd_loo == max(mean_mlpd_loo)) |>
+    mutate(overfit_size = size) |>
+    select(name, n, rho, overfit_size) |>
+    ungroup() )
+
+# remove heuristic calculation beyond point of maximal over-fitting
+fs_mlpds_multi <- fs_mlpds_multi |> left_join(over_fitting_df) |>
+  mutate(mlpd_corrected_1 = ifelse(size > overfit_size, NA, mlpd_corrected_1),
+         mlpd_corrected_15 = ifelse(size > overfit_size, NA, mlpd_corrected_15),
+         mlpd_corrected_2 = ifelse(size > overfit_size, NA, mlpd_corrected_2))
+
+# compute the means over iterations with new NA values
+( means_multi <-  fs_mlpds_multi |>
+    group_by(name, size, n, rho) |>
+    summarize(mean_mlpd_loo = mean(mlpd_loo),
+              mean_mlpd_corrected_1 = mean(mlpd_corrected_1),
+              mean_mlpd_corrected_15 = mean(mlpd_corrected_15),
+              mean_mlpd_corrected_2 = mean(mlpd_corrected_2),
+              mean_mlpd_test = mean(mlpd_test)) |>
+    ungroup() )
+
+# plot the results
+prior_to_plot <- "Normal prior" # "Normal prior"
+prior_means <- means |> filter(name == prior_to_plot)
+over_fitting_df_means <- over_fitting_df |> filter(name == prior_to_plot)
+order_stat_df_means <- order_stat_df |> filter(name == prior_to_plot)
+n_label_names = c(`100`='$n = 100$', `200`='$n = 200$', `400`='$n = 400$')
+rho_label_names = c(`0`='$rho = 0$', `0.5`='$rho = 0.5$', `0.9`='$rho = 0.9$')
+p_alt <- means_multi |>
+  filter(name == prior_to_plot,
+         rho != 0.5) |>
+  ggplot() +
+  geom_hline(yintercept = 0, size = 0.2) + 
+  geom_line(aes(x = size, y = mean_mlpd_loo), colour = "red",
+            size=0.9, alpha = 0.2) +
+  geom_line(aes(x = size, y = mean_mlpd_test), color = 'blue',
+            size=0.9, alpha = 0.2) +
+  geom_line(aes(x = size, y = mean_mlpd_corrected_1),
+            size=1.2, alpha = 0.4, colour = "black") +
+  geom_line(aes(x = size, y = mean_mlpd_corrected_15),
+            size=1.2, alpha = 0.6, colour = "black") +
+  geom_line(aes(x = size, y = mean_mlpd_corrected_2),
+            size=1.2, alpha = 1, colour = "black") +
+  #geom_vline(data = order_stat_df_means |> filter(rho != 0.5), 
+  #           aes(xintercept = overfit_size), 
+  #           size = 0.5, colour = 'black', linetype = 'dashed') +
+  #geom_vline(data = over_fitting_df_means|> filter(rho != 0.5),
+  #           aes(xintercept = overfit_size), 
+  #           size = 0.5, colour = 'red', linetype = 'dashed') +
+  facet_grid(
+    rows = vars(n), 
+    cols = vars(rho), 
+    labeller = labeller(n = as_labeller(n_label_names), 
+                        rho = as_labeller(rho_label_names))) +
+  ylim(-0.5, 0.5) +
+  xlim(0, 50) +
+  xlab("Model size") +
+  ylab("mlpd") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.background = element_blank(),
+        legend.position="none") 
+p_alt
+#save_tikz_plot(p_alt, width = 5, filename = "./tex/alt-gaussian-forward.tex")
+#save_tikz_plot(p_alt, width = 5, filename = "./tex/alt-r2d2-forward.tex")

@@ -119,7 +119,7 @@ fs_with_bias <- fs_with_base |>
                                                  mu = 0,
                                                  sd = candidate_sd),
            corrected_diff = case_when(abs(elpd_loo_diff) > estimated_bias ~ elpd_loo_diff,
-                                      abs(elpd_loo_diff) <= estimated_bias ~ diff_median)) |>
+                                      abs(elpd_loo_diff) <= estimated_bias ~ elpd_loo_diff - 1.5 * estimated_bias)) |> #diff_median)) |>
     ungroup()
 fs_with_bias
 
@@ -228,10 +228,10 @@ p <- fs_mlpds |>
   facet_grid(
     rows = vars(data_name), 
     cols = vars(prior_name),
-    scales = "free",
+    scales = "free_y",
     labeller = labeller(data_name = as_labeller(label_names),
                         prior_name = as_labeller(prior_names))) +
-  ylim(-0.4, 0.2) +
+  #ylim(-0.4, 0.2) +
   xlim(0, 50) +
   xlab("Model size") +
   ylab("mlpd") +
@@ -242,8 +242,8 @@ p <- fs_mlpds |>
         panel.background = element_blank(),
         legend.position="none") 
 p
-#bayesflow::save_tikz_plot(p, width = 5, height = 5 * 1.2, 
-#                          filename = "./tex/real-world-forward.tex")
+bayesflow::save_tikz_plot(p, width = 5, height =  5, 
+                          filename = "./tex/real-world-forward.tex")
 
 ## Size selection
 
