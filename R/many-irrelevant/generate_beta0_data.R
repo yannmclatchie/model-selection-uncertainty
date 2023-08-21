@@ -36,7 +36,6 @@ for (K in seq(2, 106, by=8)) {
     print(paste0("K: ",K))
 
     # simulate datasets
-    set.seed(1234)
     datasets <- bayesflow::generate_from_dgp(
         dgp = simulate_data,
         n_datasets = 100,
