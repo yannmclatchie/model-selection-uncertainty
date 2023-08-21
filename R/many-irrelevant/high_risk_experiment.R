@@ -56,7 +56,7 @@ fit_all_models <- function(exec_file, data) {
   # fit all models
   print("fitting baseline model ...")
   baseline_stan_data <- list(N_train = n,
-                             N_test = n,
+                             N_test = n_test,
                              d = 1,
                              x_train = as.matrix(data$train$x0),
                              x_test = as.matrix(data$test$x0),
@@ -66,18 +66,21 @@ fit_all_models <- function(exec_file, data) {
                                 chains = 4,
                                 parallel_chains = 4,
                                 refresh = 0)
+  print("baseline model done.")
   print("fitting candidate models ...")
   fitted_models <- 1:(K - 1) |> 
     map(\(k) fit_candidate_model(k, exec, data, n, n_test))
-  print("done.")
+  print("candidate models done.")
   
   # compute the difference between all models and the baseline model
+  print("computing elpd ...")
   loo_elpds <- fitted_models |>
     map(\(Ma_fit) compute_loo_elpd(Ma_fit))
   test_elpds <- fitted_models |>
     map(\(Ma_fit) compute_test_elpd(Ma_fit))
   baseline_loo_elpd <- compute_loo_elpd(baseline_model)
   baseline_test_elpd <- compute_test_elpd(baseline_model)
+  print("elpd done.")
   
   # build dataframe of results
   out <- cbind(data.frame(sapply(loo_elpds,c)),
@@ -101,8 +104,10 @@ out <- fit_all_models(exec, current_data)
 
 # save results
 K <- as.numeric(current_data$K)
+print("writing results ...")
 output_file <- paste0("all_irrelevant_results_","K",K,
                       "_iter", dataset_iter)
 write.csv(out, file = paste0("data/results/all-irrelevant/", output_file, ".csv"), 
           row.names = FALSE)
+print("writing done.")
 
