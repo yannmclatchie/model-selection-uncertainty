@@ -14,36 +14,21 @@ datasets <- readRDS(datasets_file)
 
 current_data <- datasets[[dataset_iter]]
 
-compute_loo_elpd_difference <- function(Ma_fit, Mb_fit, n) {
-  # compute LOO-CV elpd difference
-  log_lik_Ma <- Ma_fit$draws("log_lik")
-  log_lik_Mb <- Mb_fit$draws("log_lik")
-  r_eff_Ma <- relative_eff(exp(log_lik_Ma))
-  r_eff_Mb <- relative_eff(exp(log_lik_Mb))
-  loo_Ma <- loo(log_lik_Ma, r_eff = r_eff_Ma, cores = 2)
-  loo_Mb <- loo(log_lik_Mb, r_eff = r_eff_Mb, cores = 2)
-  loo_elpd_diff <- sum(loo_Ma$pointwise[,"elpd_loo"] 
-                       - loo_Mb$pointwise[,"elpd_loo"])
-  loo_elpd_diff_se  <- sd(loo_Ma$pointwise[, 'elpd_loo'] - 
-                          loo_Mb$pointwise[, 'elpd_loo']) * sqrt(n)
-  return(list(loo_elpd_diff = loo_elpd_diff, loo_elpd_diff_sd = loo_elpd_diff_se))
+compute_loo_elpd <- function(model_fit) {
+  loo_obj <- model_fit$loo()
+  loo_obj$estimates["elpd_loo", "Estimate"]
 }
 
-compute_test_elpd_difference <- function(Ma_fit, Mb_fit) {
-  # compute test elpd difference
-  test_log_lik_Ma <- Ma_fit$draws("log_lik_test")
-  test_log_lik_Mb <- Mb_fit$draws("log_lik_test")
-  elpd_Ma <- elpd(test_log_lik_Ma)
-  elpd_Mb <- elpd(test_log_lik_Mb)
-  elpd_diff <- sum(elpd_Ma$pointwise[,"elpd"] 
-                   - elpd_Mb$pointwise[,"elpd"])
-  return(elpd_diff)
+compute_test_elpd <- function(model_fit) {
+  test_log_lik <- model_fit$draws("log_lik_test")
+  elpd_model <- elpd(test_log_lik)
+  sum(elpd_model$pointwise[,"elpd"])
 }
 
 # define model-fitting method
-fit_candidate_model <- function(k, exec, data, n) {
+fit_candidate_model <- function(k, exec, data, n, n_test) {
   stan_data <- list(N_train = n,
-                    N_test = n,
+                    N_test = n_test,
                     d = 2,
                     x_train = as.matrix(data$train)[, paste0("x", c(0, k))],
                     x_test = as.matrix(data$test)[, paste0("x", c(0, k))],
@@ -58,7 +43,11 @@ fit_candidate_model <- function(k, exec, data, n) {
 
 fit_all_models <- function(exec_file, data) {
   n <- as.numeric(data$n)
+  n_test <- as.numeric(data$n_test)
+  sigma <- as.numeric(data$sigma)
+  snr <- as.numeric(data$snr)
   K <- as.numeric(data$K)
+  beta_delta <- data$beta_delta
   iter <- data$rep_id
   
   # build model
@@ -78,18 +67,32 @@ fit_all_models <- function(exec_file, data) {
                                 parallel_chains = 4,
                                 refresh = 0)
   print("fitting candidate models ...")
-  fitted_models <- 1:K |> 
-    map(\(k) fit_candidate_model(k, exec, data, n))
+  fitted_models <- 1:(K - 1) |> 
+    map(\(k) fit_candidate_model(k, exec, data, n, n_test))
   print("done.")
   
   # compute the difference between all models and the baseline model
-  out <- fitted_models |>
-    map(\(Ma_fit) compute_loo_elpd_difference(Ma_fit, baseline_model, n)) |>
-    bind_rows()
-
+  loo_elpds <- fitted_models |>
+    map(\(Ma_fit) compute_loo_elpd(Ma_fit))
+  test_elpds <- fitted_models |>
+    map(\(Ma_fit) compute_test_elpd(Ma_fit))
+  baseline_loo_elpd <- compute_loo_elpd(baseline_model)
+  baseline_test_elpd <- compute_test_elpd(baseline_model)
+  
   # build dataframe of results
+  out <- cbind(data.frame(sapply(loo_elpds,c)),
+               data.frame(sapply(test_elpds,c)),
+               data.frame(sapply(baseline_loo_elpd,c)),
+               data.frame(sapply(baseline_test_elpd,c)))
+  names(out) <- c("loo_elpd", "test_elpd", "baseline_loo_elpd", "baseline_test_elpd")
+  out$model <- 1:(K - 1)
   out$K <- K
+  out$n <- n
+  out$n_test <- n_test
+  out$sigma <- sigma
+  out$snr <- snr
   out$iter <- iter
+  out$beta <- beta_delta
   return(out)
 }
 
@@ -98,7 +101,6 @@ out <- fit_all_models(exec, current_data)
 
 # save results
 K <- as.numeric(current_data$K)
-beta_delta <- as.numeric(current_data$beta_delta)
 output_file <- paste0("all_irrelevant_results_","K",K,
                       "_iter", dataset_iter)
 write.csv(out, file = paste0("data/results/all-irrelevant/", output_file, ".csv"), 

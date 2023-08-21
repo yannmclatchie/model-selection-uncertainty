@@ -7,7 +7,84 @@ library(bayesflow)
 ## ---------------
 
 # read in results
-results <- read.csv(file = "data/old_results/many_models_all.csv")
+results <- read.csv(file = "data/results/many_models_all.csv")
+
+# pre-processing
+results <- results |>
+  mutate(test_elpd = test_elpd * n / n_test,
+         baseline_test_elpd = baseline_test_elpd * n / n_test,
+         loo_elpd_diff = loo_elpd - baseline_loo_elpd,
+         test_elpd_diff = test_elpd - baseline_test_elpd) |>
+  as_tibble()
+results
+
+# compute oracle model metrics
+oracle_df <- results %>% 
+  group_by(K, beta, model) %>%
+  summarise(model_test_diffs = mean(test_elpd_diff)) %>%
+  group_by(K, beta) %>%
+  summarise(oracle_diff = max(max(model_test_diffs), 0))
+oracle_df
+
+# make plot
+ann_text_1 <- data.frame(beta = 0.02, `value` = 6, lab = "Text",variable="selected-loo",
+                         K = factor(100,levels = c("2","10","100")))
+ann_text_2 <- data.frame(beta = 0.02, `value` = 1,lab = "Text",variable="true-test",
+                         K = factor(100,levels = c("2","10","100")))
+ann_text_3 <- data.frame(beta = 0.02, `value` = -1.6,lab = "Text",variable="selected-test",
+                         K = factor(100,levels = c("2","10","100")))
+
+p_oracle <- results %>% 
+  slice_max(loo_elpd_diff, n = 1, by = c(K, beta, iter)) %>%
+  group_by(K, beta) %>%
+  summarise(mean_best_loo = mean(loo_elpd_diff),
+            mean_best_test = mean(test_elpd_diff)) %>%
+  left_join(results %>% 
+            filter(model == 1) %>% # the true model
+            group_by(K, beta) %>%
+            summarise(mean_true_diff = mean(test_elpd_diff))) %>%
+  left_join(oracle_df) %>%
+  mutate(mean_best_loo = mean_best_loo - oracle_diff,
+         mean_best_test = mean_best_test - oracle_diff,
+         mean_true_diff = mean_true_diff - oracle_diff) |>
+  select(-oracle_diff) |>
+  reshape2::melt(id = c("beta", "K")) %>%
+  mutate_at(c("variable"), funs(recode(., `mean_best_loo`="selected-loo",
+                                          `mean_best_test`="selected-test",
+                                          `mean_true_diff`="true-test"))) %>%
+  ggplot(aes(x = beta, y = value, colour = variable, linetype = variable)) +
+  geom_hline(yintercept = 0, size = 0.2) +
+  geom_point() +
+  
+  #geom_smooth(method = "gam", 
+  #            formula = y ~ s(x, k = 9, bs = "cs", m = 1), 
+  #            se = F) +
+  facet_wrap(vars(K), labeller = labeller(K = 
+                                            c("2" = "$K = 2$",
+                                              "10" = "$K = 10$",
+                                              "100" = "$K = 100$")
+  )) +
+  geom_label(data = ann_text_1,label = "Selected\nLOO-CV",size=3) +
+  geom_label(data = ann_text_2,label = "True test",size=3) +
+  geom_label(data = ann_text_3,label = "Selected test",size=3) +
+  #geom_label(data = ann_text_3,label = "Oracle test",size=3) +
+  scale_y_continuous(trans='pseudo_log') +
+  scale_x_continuous(trans='log10',
+                     labels = function(x) ifelse(x == 0, "0", x)) +
+  #ylab("elpd diff. to baseline model") + 
+  ylab("elpd diff. to oracle model test elpd") + 
+  xlab("$beta Delta$") + 
+  scale_linetype_manual(values = c("solid", "solid","dashed", "solid")) +
+  scale_colour_manual(values = c("red", "black", "grey", "blue")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none"
+  ) 
+p_oracle
+save_tikz_plot(p_oracle, width = 5, filename = "./tex/many-K.tex")
 
 # plot results
 plotting_df <- results %>% group_by(K, beta, iter) %>%
@@ -25,9 +102,11 @@ plotting_df <- results %>% group_by(K, beta, iter) %>%
   reshape2::melt(id = c("beta", "K")) %>%
   mutate_at(c("variable"), funs(recode(., `mean_best_loo`="loo", 
                                        `mean_true_diff`="true")))
-ann_text_1 <- data.frame(beta = 0.01,value = 3.5, lab = "Text",variable="loo",
+ann_text_1 <- data.frame(beta = 0.02, `value` = 6, lab = "Text",variable="selected-loo",
                        K = factor(100,levels = c("2","10","100")))
-ann_text_2 <- data.frame(beta = 0.01,value = 0.5,lab = "Text",variable="true",
+ann_text_2 <- data.frame(beta = 0.02, `value` = 1,lab = "Text",variable="true-test",
+                         K = factor(100,levels = c("2","10","100")))
+ann_text_3 <- data.frame(beta = 0.02, `value` = -1.6,lab = "Text",variable="selected-test",
                          K = factor(100,levels = c("2","10","100")))
 scaleFUN <- function(x) sprintf("%.2f", x)
 
