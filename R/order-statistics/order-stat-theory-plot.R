@@ -12,7 +12,8 @@ x <- 2:20
 
 # define plotting data
 order_stat_df <- data.frame(K = x, 
-                            y = x |> purrr::map_dbl(\(k) order_stat_heuristic(k, c = 1)))
+                            # we multiply the order stat by 1.5 to estimate selection bias
+                            y = x |> purrr::map_dbl(\(k) order_stat_heuristic(k, c = 1) * 1.5))
 (p <- ggplot(data = order_stat_df, aes(x = K, y = y)) + 
     geom_line(colour = "red") +
     geom_point(colour = "red") +
