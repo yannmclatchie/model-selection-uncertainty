@@ -142,10 +142,8 @@ scaleFUN <- function(x) sprintf("%.2f", x)
 # save plot
 save_tikz_plot(p, width = 5, filename = "./tex/many-K.tex")
 
-list.files('./data/results/joint-predictive', pattern = "jointpred*", full.names = TRUE) %>% 
-  lapply(read_csv) %>% 
-  bind_rows %>%
-  write_csv('data/results/joint-predictive/jointpred_all.csv')
+## Data processing
+## --------------
 
 list.files('./data/results/many-irrelevant', pattern = "many_models*", full.names = TRUE) %>% 
   lapply(read_csv) %>% 
@@ -157,71 +155,60 @@ list.files('./data/results/all-irrelevant', pattern = "all_irrelevant*", full.na
   bind_rows %>%
   write_csv('data/results/all-irrelevant/all_irrelevant_all.csv')
 
-remotes::install_github("stan-dev/cmdstanr", Ncpus = 16)
-install.packages(c("loo", "posterior", "tidyverse", "scoringRules"), Ncpus = 16)
-remotes::install_github("TeemuSailynoja/bayesflow", Ncpus = 16)
-
+# check the Pareto k hats with posterior package
+#remotes::install_github("stan-dev/cmdstanr", Ncpus = 16)
+#install.packages(c("loo", "posterior", "tidyverse", "scoringRules"), Ncpus = 16)
+#remotes::install_github("TeemuSailynoja/bayesflow", Ncpus = 16)
+#devtools::load_all("../posterior")
 
 ## All irrelevant
 ## --------------
 
-
-devtools::load_all("../posterior")
-
-# read in results
-results <- read.csv(file = "data/all_irrelevant_all.csv") |>
-  arrange(K, iter)
+# read in results and pre-process
+results <- read.csv(file = "data/results/all_irrelevant_all.csv") |>
+  mutate(test_elpd = test_elpd * n / n_test,
+         loo_elpd_diff = loo_elpd - baseline_loo_elpd)
 results
+
+# compute the mean best observed difference over iterations
+mean_best_df <- results |>
+  slice_max(loo_elpd_diff, n = 1, by = c(K, iter)) |>
+  group_by(K) |>
+  summarise(mean_best_diff = mean(loo_elpd_diff)) 
 
 # define order statistic heuristic data
 order_stat_heuristic <- function(k, c = 2.8) {
   qnorm(p = 1 - 1 / (k * 2), mean = 0, sd = c)
 }
 
-# plot results
-plotting_df <- results |>
+# compute the mean order statistic over iterations
+mean_order_stat_df <- results |>
   group_by(K, iter) |>
-  mutate(best_loo = max(loo_elpd_diff),
-         mean_comb = mean(loo_elpd_diff),
-         var_comb = sum(loo_elpd_diff_sd^2 + (loo_elpd_diff - mean_comb)^2) / K,
-         sd_comb = sqrt(var_comb),
-         diff_median = median(loo_elpd_diff),
-         elpd_loo_diff_trunc = case_when(loo_elpd_diff >= diff_median ~ loo_elpd_diff - diff_median,
-                                         loo_elpd_diff < diff_median ~ NA),
-         n_models = sum(!is.na(elpd_loo_diff_trunc)),
-         candidate_sd = sqrt(1 / n_models * sum(elpd_loo_diff_trunc^2, na.rm = TRUE)),
-         order_stat = order_stat_heuristic(K, candidate_sd)) |>
+  summarise(diff_median = median(loo_elpd_diff),
+            elpd_loo_diff_trunc = case_when(loo_elpd_diff >= diff_median ~ loo_elpd_diff - diff_median,
+                                            loo_elpd_diff < diff_median ~ NA),
+            n_models = sum(!is.na(elpd_loo_diff_trunc)),
+            candidate_sd = sqrt(1 / n_models * sum(elpd_loo_diff_trunc^2, na.rm = TRUE)),
+            order_stat = order_stat_heuristic(K, candidate_sd)) |>
   group_by(K) |>
-  summarise(mean_best_loo = mean(best_loo),
-            mean_order_stat = mean(order_stat)) |>
-  ungroup() |>
-  arrange(K)
-plotting_df
+  summarise(mean_order_stat = mean(order_stat)) 
 
-pareto_order_stat <- function(n, sigma, k) {
-  posterior:::qgeneralized_pareto(p = 1 - 1 / (n * 2), sigma = sigma, mu = 0) 
-}
+# bind results
+plotting_df <- inner_join(mean_best_df, mean_order_stat_df)
 
-results |>
-  dplyr::filter(K == 98) |>
-  dplyr::filter(iter == 1) |>
-  dplyr::summarise(khat = posterior::pareto_khat(loo_elpd_diff, r_eff = 1)$khat,
-                   sigma = sd(loo_elpd_diff),
-                   gauss_os = order_stat_heuristic(K, sigma),
-                   pareto_os = pareto_order_stat(n = k, sigma = sigma, k = khat))
-
-# smooth order statistics estimats
+# smooth order statistics estimates
 mono.spline <- scam::scam(mean_order_stat ~ s(K, k = 10, bs = "mpi", m = 1), 
-                    data = plotting_df)
+                          data = plotting_df)
 plotting_df$smoothed_order_stat <- mono.spline$fit
 
+
 # define label data
-ann_text_1 <- data.frame(K = 15, y = 2, lab = "Text")
-ann_text_2 <- data.frame(K = 80, y = 1.5, lab = "Text")
+ann_text_1 <- data.frame(K = 15, y = 2.5, lab = "Text")
+ann_text_2 <- data.frame(K = 60, y = 1.5, lab = "Text")
 p <- ggplot() + 
     geom_line(data = plotting_df, aes(x = K, y = smoothed_order_stat), 
               linetype = "dashed", colour = "grey") +
-    geom_point(data = plotting_df, aes(x = K, y = mean_best_loo)) +
+    geom_point(data = plotting_df, aes(x = K, y = mean_best_diff)) +
     geom_label(data = ann_text_1, aes(x = K, y = y), label = "Eq. 13", 
                colour = "grey", size = 3) +
     geom_label(data = ann_text_2, aes(x = K, y = y), label = "Empirical observation", 
