@@ -152,7 +152,7 @@ p <- ggplot() +
     geom_line(data = plotting_df, aes(x = K, y = smoothed_order_stat), 
               linetype = "dashed", colour = "grey") +
     geom_point(data = plotting_df, aes(x = K, y = mean_best_diff)) +
-    geom_label(data = ann_text_1, aes(x = K, y = y), label = "Equation 18", 
+    geom_label(data = ann_text_1, aes(x = K, y = y), label = "Equation 16", 
                colour = "grey", size = 3) +
     geom_label(data = ann_text_2, aes(x = K, y = y), label = "Empirical observation", 
                colour = "black", size = 3) +
@@ -166,5 +166,5 @@ p <- ggplot() +
 p
 
 # save plot
-save_tikz_plot(p, width = 5, filename = "./tex/high-risk.tex")
+save_tikz_plot(p, width = 5, height = 2.5, filename = "./tex/high-risk.tex")
 

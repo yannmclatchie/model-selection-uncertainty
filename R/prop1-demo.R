@@ -168,7 +168,7 @@ order_stat_line_df <- plot_df |>
             order_stat = order_stat_heuristic(K, candidate_sd)) |>
   select(order_stat) |>
   unique() |>
-  mutate(.data_name = "EEG cash aid", label = "Proposition 1")
+  mutate(.data_name = "EEG cash aid", label = "S(K)o K")
 order_stat_line_df
 
 # make plot

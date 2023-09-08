@@ -6,7 +6,6 @@ library(dplyr)
 
 # save plot to tikz
 setwd("~/Desktop/model-selection-uncertainty")
-source("./R/aux/aux_plotting.R")
 
 t <- seq(0, 1, length=100)
 p_theory <- matrix(
@@ -42,7 +41,7 @@ colnames( data ) <- c( "size", "elpd_out", "elpd_in" )
 
 label_data <- data.frame(
   x = c(18, 3, 2, 10, 9),
-  y = c(30, -50, 25, -35, 12),
+  y = c(30, -50, 25, -35, 20),
   label = c("LOO-CV", "test", "selection-induced\n bias", "over-fitting", 
             "point of predictive\nsaturation"),
   colour = c("red", "grey", "black", "black", "black")
@@ -79,5 +78,5 @@ line_data_2 <- data |>
         legend.position="none")  +
   labs(x = "Model size", y = "$Delta elpdPlain$") )
 
-save_tikz_plot(p, width = 5, filename = "./tex/over-fit.tex")
+save_tikz_plot(p, width = 5, height = 2.5, filename = "./tex/over-fit.tex")
 

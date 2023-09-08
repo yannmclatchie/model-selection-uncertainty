@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyr)
-library(distributional)
-library(ggdist)
+#library(distributional)
+#library(ggdist)
 library(ggplot2)
 library(patchwork)
 library(bayesflow)
@@ -24,7 +24,8 @@ p_dists <-  dists_df %>%
   scale_color_viridis_c() +
   labs(
     y = NULL,
-    x = "mean"
+    x = "mean",
+    subtitle = "p(Delta elpdHat Ma, Mb y)"
   ) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -45,7 +46,8 @@ p_biases <- dists_df |>
   geom_line(colour = "red", linewidth = mywidth) +
   labs(
     y = NULL,
-    x = "mean"
+    x = "mean",
+    subtitle = "pr  text select Mb text over Ma"
   ) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -58,4 +60,4 @@ p_biases
 ( p <- p_dists + p_biases )
 
 # save plot
-save_tikz_plot(p, width = 5, height = 3, filename = "./tex/gaussian-bias.tex")
+save_tikz_plot(p, width = 5, height = 2, filename = "./tex/gaussian-bias.tex")

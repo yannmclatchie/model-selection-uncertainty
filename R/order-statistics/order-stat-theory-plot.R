@@ -17,7 +17,7 @@ order_stat_df <- data.frame(K = x,
 (p <- ggplot(data = order_stat_df, aes(x = K, y = y)) + 
     geom_line(colour = "red") +
     geom_point(colour = "red") +
-    ylab("Expected selection-induced bias") + 
+    ylab("Expected\nselection-induced bias") + 
     xlab("$K$") + 
     scale_x_continuous(trans='log2') +
     #scale_y_continuous(breaks=c(0,5,10,15,20),limits=c(4,12)) +
@@ -26,4 +26,4 @@ order_stat_df <- data.frame(K = x,
           panel.grid.major = element_blank()) )
 
 # save plot
-save_tikz_plot(p, width = 5, filename = "./tex/order-stat-theory.tex")
+save_tikz_plot(p, width = 5, height = 2, filename = "./tex/order-stat-theory.tex")
