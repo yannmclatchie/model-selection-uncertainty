@@ -3,6 +3,7 @@ library(purrr)
 library(ggplot2)
 library(bayesflow)
 library(tidyr)
+library(lemon)
 
 ## Data reading
 
@@ -193,6 +194,16 @@ order_stat_df <-  means |>
   ungroup() 
 order_stat_df
 
+# do some post-processing for plotting
+lower_y <- -0.2
+means <- means |>
+  mutate(mean_mlpd_loo = case_when(mean_mlpd_loo < lower_y ~ lower_y,
+                                   mean_mlpd_loo >= lower_y ~ mean_mlpd_loo),
+         mean_mlpd_corrected = case_when(mean_mlpd_corrected < lower_y ~ lower_y,
+                                         mean_mlpd_corrected >= lower_y ~ mean_mlpd_corrected),
+         mean_mlpd_test = case_when(mean_mlpd_test < lower_y ~ lower_y,
+                                    mean_mlpd_test >= lower_y ~ mean_mlpd_test))
+
 # make plot
 label_names = c(`ionosphere`='Ionosphere', `heart`='Heart', `sonar`='Sonar', `crime`='Crime', `colon`='Colon')
 prior_names = c(`R2D2 prior`='Sparsity-inducing prior', `Normal prior`='Normal prior')
@@ -231,10 +242,10 @@ p <- fs_mlpds |>
     scales = "free_y",
     labeller = labeller(data_name = as_labeller(label_names),
                         prior_name = as_labeller(prior_names))) +
-  #ylim(-0.4, 0.2) +
+  scale_y_continuous(limits=c(-0.2, 0.05)) +
   xlim(0, 50) +
   xlab("Model size") +
-  ylab("mlpd") +
+  ylab("$Delta mlpd$") +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -242,7 +253,7 @@ p <- fs_mlpds |>
         panel.background = element_blank(),
         legend.position="none") 
 p
-bayesflow::save_tikz_plot(p, width = 5, height =  5, 
+bayesflow::save_tikz_plot(p, width = 5, #height =  5, 
                           filename = "./tex/real-world-forward.tex")
 
 ## Size selection
@@ -395,8 +406,8 @@ p_sizes <- rbind(projpred_metrics, order_stat_metrics, smallest_bulge_metrics, b
   facet_grid(vars(metric), vars(data_name), scales = "free",
              labeller = labeller(data_name = as_labeller(label_names),
                                  metric = as_labeller(metric_names))) +
-  xlab("Heuristic") +
-  ylab("") +
+  xlab(NULL) +
+  ylab(NULL) +
   scale_colour_manual(values = c("black", "red")) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -407,7 +418,8 @@ p_sizes <- rbind(projpred_metrics, order_stat_metrics, smallest_bulge_metrics, b
         axis.text.x = element_text(angle = 45, hjust=1),
         axis.title.y=element_blank())
 p_sizes
-bayesflow::save_tikz_plot(p_sizes, width = 5, filename = "./tex/real-world-sizes.tex")
+bayesflow::save_tikz_plot(p_sizes, width = 5, 
+                          height = 2.5, filename = "./tex/real-world-sizes.tex")
 
 ## Appendix plots
 
@@ -481,8 +493,8 @@ p_appendix <- rbind(order_stat_metrics, twosigma_metrics,
   facet_grid(vars(metric), vars(data_name), scales = "free",
              labeller = labeller(data_name = as_labeller(label_names),
                                  metric = as_labeller(metric_names))) +
-  xlab("Heuristic") +
-  ylab("") +
+  xlab(NULL) +
+  ylab(NULL) +
   scale_colour_manual(values = c("black", "red")) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -493,5 +505,6 @@ p_appendix <- rbind(order_stat_metrics, twosigma_metrics,
         axis.text.x = element_text(angle = 45, hjust=1),
         axis.title.y=element_blank())
 p_appendix
-bayesflow::save_tikz_plot(p_appendix, width = 5, filename = "./tex/incremental-sizes.tex")
+bayesflow::save_tikz_plot(p_appendix, width = 5, 
+                          height = 2.5, filename = "./tex/incremental-sizes.tex")
 
