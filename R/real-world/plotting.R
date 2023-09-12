@@ -195,14 +195,14 @@ order_stat_df <-  means |>
 order_stat_df
 
 # do some post-processing for plotting
-lower_y <- -0.2
-means <- means |>
-  mutate(mean_mlpd_loo = case_when(mean_mlpd_loo < lower_y ~ lower_y,
-                                   mean_mlpd_loo >= lower_y ~ mean_mlpd_loo),
-         mean_mlpd_corrected = case_when(mean_mlpd_corrected < lower_y ~ lower_y,
-                                         mean_mlpd_corrected >= lower_y ~ mean_mlpd_corrected),
-         mean_mlpd_test = case_when(mean_mlpd_test < lower_y ~ lower_y,
-                                    mean_mlpd_test >= lower_y ~ mean_mlpd_test))
+#lower_y <- -0.2
+#means <- means |>
+#  mutate(mean_mlpd_loo = case_when(mean_mlpd_loo < lower_y ~ lower_y,
+#                                   mean_mlpd_loo >= lower_y ~ mean_mlpd_loo),
+#         mean_mlpd_corrected = case_when(mean_mlpd_corrected < lower_y ~ lower_y,
+#                                         mean_mlpd_corrected >= lower_y ~ mean_mlpd_corrected),
+#         mean_mlpd_test = case_when(mean_mlpd_test < lower_y ~ lower_y,
+#                                    mean_mlpd_test >= lower_y ~ mean_mlpd_test))
 
 # make plot
 label_names = c(`ionosphere`='Ionosphere', `heart`='Heart', `sonar`='Sonar', `crime`='Crime', `colon`='Colon')
